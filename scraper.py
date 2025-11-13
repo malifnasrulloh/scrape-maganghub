@@ -1,5 +1,7 @@
 import json
+import gzip
 import time
+import shutil
 import pandas as pd
 from tqdm import tqdm
 from requests import get
@@ -68,6 +70,10 @@ print(f"\n✅ Total data terkumpul: {len(all_data)}")
 
 df = pd.DataFrame(all_data)
 
+df.to_json("raw_data.json", indent=4, orient="records", date_format="iso", date_unit="s")
+with open("raw_data.json", "rb") as f_in, gzip.open("raw_data.json.gz", "wb") as f_out:
+    shutil.copyfileobj(f_in, f_out)
+
 df.to_json(
     "raw_data.json", indent=4, orient="records", date_format="iso", date_unit="s"
 )
@@ -102,4 +108,5 @@ df["jenjang"] = df["jenjang"].apply(
 )
 
 df.to_json("data.json", indent=4, orient="records", date_format="iso", date_unit="s")
-
+with open("data.json", "rb") as f_in, gzip.open("data.json.gz", "wb") as f_out:
+    shutil.copyfileobj(f_in, f_out)

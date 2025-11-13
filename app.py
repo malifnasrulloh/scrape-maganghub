@@ -1,7 +1,9 @@
-import streamlit as st
-import pandas as pd
 import json
 import math
+import gzip
+import shutil
+import streamlit as st
+import pandas as pd
 
 st.set_page_config(page_title="Data Lowongan Magang", layout="wide")
 
@@ -15,7 +17,7 @@ st.markdown(
 @st.cache_data
 def load_data():
     try:
-        with open("data.json", "r", encoding="utf-8") as f:
+        with gzip.open("data.json.gz", "rt", encoding="utf-8") as f:
             data = json.load(f)
             df = pd.DataFrame(data)
             return df
