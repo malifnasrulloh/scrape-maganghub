@@ -167,14 +167,14 @@ Pastikan mencantumkan sumber data resmi:
 
 ## 👨‍💻 Kontributor
 
-| Nama            | Peran                                     |
-| --------------- | ----------------------------------------- |
+| Nama                        | Peran                                     |
+| --------------------------- | ----------------------------------------- |
 | **Muhammad Alif Nasrulloh** | Pengembang utama, scraper & Streamlit app |
-| GitHub Actions  | Otomasi dan deployment data               |
+| GitHub Actions              | Otomasi dan deployment data               |
 
 ---
 
-**Made with ❤️ and Python**
+**Made with ❤️ and Python.**
 _Data diambil dari sumber publik Kementerian Ketenagakerjaan RI._
 
 ---
