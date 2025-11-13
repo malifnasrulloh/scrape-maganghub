@@ -1,4 +1,5 @@
 import json
+import time
 import pandas as pd
 from tqdm import tqdm
 from requests import get
@@ -21,13 +22,14 @@ def fetch_page(page):
     while True:
         try:
             res = get(
-                url_template.format(page=page, limit=limit), headers=headers
+                url_template.format(page=page, limit=limit), headers=headers, timeout=10
             )
             if res.status_code == 200:
                 data = json.loads(res.text)
                 return data
         except:
             pass
+        time.sleep(2)
 
 def fetch_all():
     first_page_data = fetch_page(1)
