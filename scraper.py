@@ -102,7 +102,9 @@ def fetch_all() -> list:
         futures = {
             executor.submit(fetch_page, page): page for page in range(2, last_page + 1)
         }
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Mengunduh data"):
+        for future in tqdm(
+            as_completed(futures), total=len(futures), desc="Mengunduh data"
+        ):
             page = futures[future]
             try:
                 page_data = future.result()
@@ -124,82 +126,99 @@ if __name__ == "__main__":
     # Convert to DataFrame
     df = pd.DataFrame(all_data)
 
-    # ----------------------------------------------------------
-    # 💾 Save Raw Data
-    # ----------------------------------------------------------
-    df.to_json("raw_data.json", indent=4, orient="records", date_format="iso", date_unit="s")
-    with open("raw_data.json", "rb") as f_in, gzip.open("raw_data.json.gz", "wb") as f_out:
-        shutil.copyfileobj(f_in, f_out)
+    if df.empty:
+        print("❌ Tidak ada data untuk diproses.")
+    else:
+        # ----------------------------------------------------------
+        # 💾 Save Raw Data
+        # ----------------------------------------------------------
+        df.to_json(
+            "raw_data.json",
+            indent=4,
+            orient="records",
+            date_format="iso",
+            date_unit="s",
+        )
+        with open("raw_data.json", "rb") as f_in, gzip.open(
+            "raw_data.json.gz", "wb"
+        ) as f_out:
+            shutil.copyfileobj(f_in, f_out)
 
-    # ----------------------------------------------------------
-    # 🧹 Data Cleaning & Transformation
-    # ----------------------------------------------------------
+        # ----------------------------------------------------------
+        # 🧹 Data Cleaning & Transformation
+        # ----------------------------------------------------------
 
-    # Remove duplicates by job ID
-    df = df.drop_duplicates(subset=["id_posisi"]).reset_index(drop=True)
+        # Remove duplicates by job ID
+        df = df.drop_duplicates(subset=["id_posisi"]).reset_index(drop=True)
 
-    # Drop columns that contain only NaN
-    df = df.dropna(axis=1, how="all")
+        # Drop columns that contain only NaN
+        df = df.dropna(axis=1, how="all")
 
-    # Convert timestamp columns to datetime
-    for col in ["created_at", "updated_at"]:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
+        # Convert timestamp columns to datetime
+        for col in ["created_at", "updated_at"]:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], errors="coerce")
 
-    # Extract kabupaten and provinsi from nested perusahaan dict
-    df["kabupaten"] = df["perusahaan"].apply(
-        lambda x: x.get("nama_kabupaten") if isinstance(x, dict) else None
-    )
-    df["provinsi"] = df["perusahaan"].apply(
-        lambda x: x.get("nama_provinsi") if isinstance(x, dict) else None
-    )
+        # Extract kabupaten and provinsi from nested perusahaan dict
+        df["kabupaten"] = df["perusahaan"].apply(
+            lambda x: x.get("nama_kabupaten") if isinstance(x, dict) else None
+        )
+        df["kabupaten"] = df["kabupaten"].str.strip()
+        df["provinsi"] = df["perusahaan"].apply(
+            lambda x: x.get("nama_provinsi") if isinstance(x, dict) else None
+        )
+        df["provinsi"] = df["provinsi"].str.strip()
 
-    # Calculate remaining quota
-    df["diff_quota"] = df["jumlah_kuota"] - df["jumlah_terdaftar"]
+        # Calculate remaining quota
+        df["diff_quota"] = df["jumlah_kuota"] - df["jumlah_terdaftar"]
 
-    # Reorder columns: put diff_quota at the start
-    cols = ["diff_quota"] + [c for c in df.columns if c != "diff_quota"]
-    df = df[cols]
+        # Reorder columns: put diff_quota at the start
+        cols = ["diff_quota"] + [c for c in df.columns if c != "diff_quota"]
+        df = df[cols]
 
-    # Normalize government agency columns
-    df["government_agency"] = df["government_agency"].apply(
-        lambda x: x.get("government_agency_name") if isinstance(x, dict) else None
-    )
-    df["sub_government_agency"] = df["sub_government_agency"].apply(
-        lambda x: x.get("sub_government_agency_name") if isinstance(x, dict) else None
-    )
+        # Normalize government agency columns
+        df["government_agency"] = df["government_agency"].apply(
+            lambda x: x.get("government_agency_name") if isinstance(x, dict) else None
+        )
+        df["sub_government_agency"] = df["sub_government_agency"].apply(
+            lambda x: (
+                x.get("sub_government_agency_name") if isinstance(x, dict) else None
+            )
+        )
 
-    # Parse program_studi JSON string safely
-    def parse_program_studi(x):
-        """Safely parse program_studi JSON field."""
-        if isinstance(x, str):
-            try:
-                return ", ".join([i["title"] for i in json.loads(x)])
-            except Exception:
-                return None
-        return None
+        # Parse program_studi JSON string safely
+        def parse_program_studi(x):
+            """Safely parse program_studi JSON field."""
+            if isinstance(x, str):
+                try:
+                    return ", ".join([i["title"] for i in json.loads(x)])
+                except Exception:
+                    return None
+            return None
 
-    df["program_studi"] = df["program_studi"].apply(parse_program_studi)
+        df["program_studi"] = df["program_studi"].apply(parse_program_studi)
 
-    # Parse jenjang field (list or string)
-    def parse_jenjang(x):
-        """Convert jenjang list string into comma-separated values."""
-        if isinstance(x, str):
-            try:
-                parsed = eval(x)
-                if isinstance(parsed, list):
-                    return ", ".join(parsed)
-            except Exception:
-                return None
-        return None
+        # Parse jenjang field (list or string)
+        def parse_jenjang(x):
+            """Convert jenjang list string into comma-separated values."""
+            if isinstance(x, str):
+                try:
+                    parsed = eval(x)
+                    if isinstance(parsed, list):
+                        return ", ".join(parsed)
+                except Exception:
+                    return None
+            return None
 
-    df["jenjang"] = df["jenjang"].apply(parse_jenjang)
+        df["jenjang"] = df["jenjang"].apply(parse_jenjang)
 
-    # ----------------------------------------------------------
-    # 💾 Save Cleaned Data
-    # ----------------------------------------------------------
-    df.to_json("data.json", indent=4, orient="records", date_format="iso", date_unit="s")
-    with open("data.json", "rb") as f_in, gzip.open("data.json.gz", "wb") as f_out:
-        shutil.copyfileobj(f_in, f_out)
+        # ----------------------------------------------------------
+        # 💾 Save Cleaned Data
+        # ----------------------------------------------------------
+        df.to_json(
+            "data.json", indent=4, orient="records", date_format="iso", date_unit="s"
+        )
+        with open("data.json", "rb") as f_in, gzip.open("data.json.gz", "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
 
-    print("✅ Data berhasil disimpan sebagai 'data.json' dan 'data.json.gz'.")
+        print("✅ Data berhasil disimpan sebagai 'data.json' dan 'data.json.gz'.")

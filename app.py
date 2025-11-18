@@ -21,6 +21,7 @@ st.markdown(
     """
 )
 
+
 # --------------------------------------------------------------
 # 📦 Data Loader Function
 # --------------------------------------------------------------
@@ -59,32 +60,29 @@ if not df.empty:
 
     # Dropdown options for provinsi and kabupaten
     provinsi_list = ["Semua"] + sorted(df["provinsi"].dropna().unique())
-    kabupaten_list = ["Semua"] + sorted(df["kabupaten"].dropna().unique())
 
     # Province filter
     selected_provinsi = st.sidebar.selectbox("Pilih Provinsi", provinsi_list)
-
-    # District filter (only active if a province is selected)
-    selected_kabupaten = st.sidebar.selectbox(
-        "Pilih Kabupaten",
-        kabupaten_list,
-        disabled=(selected_provinsi == "Semua"),
-    )
 
     # Apply selected filters efficiently
     mask = pd.Series(True, index=df.index)
     if selected_provinsi != "Semua":
         mask &= df["provinsi"] == selected_provinsi
-        if selected_kabupaten != "Semua":
-            mask &= df["kabupaten"] == selected_kabupaten
 
-    # Keyword search (in posisi or perusahaan)
-    search_query = st.sidebar.text_input("Cari Nama Posisi atau Perusahaan").strip()
-    if search_query:
-        mask &= (
-            df["posisi"].str.contains(search_query, case=False, na=False)
-            | df["perusahaan"].str.contains(search_query, case=False, na=False)
+        # District filter (only active if a province is selected)
+        kabupaten_list = ["Semua"] + sorted(df[mask]["kabupaten"].dropna().unique())
+        selected_kabupaten = st.sidebar.selectbox(
+            "Pilih Kabupaten",
+            kabupaten_list,
+            disabled=(selected_provinsi == "Semua"),
         )
+        if selected_kabupaten != "Semua":
+            mask &= df[mask]["kabupaten"] == selected_kabupaten
+
+    # Keyword search
+    search_query = st.sidebar.text_input("Cari Nama Posisi").strip()
+    if search_query:
+        mask &= df["posisi"].str.contains(search_query, case=False, na=False)
 
     # Apply combined mask to data
     df = df[mask]
@@ -100,10 +98,21 @@ if not df.empty:
     # 📋 Column Selection and Formatting
     # ----------------------------------------------------------
     columns_to_show = [
-        "daftar", "posisi", "deskripsi_posisi", "diff_quota",
-        "jumlah_kuota", "jumlah_terdaftar", "program_studi", "jenjang",
-        "perusahaan", "government_agency", "sub_government_agency",
-        "kabupaten", "provinsi", "created_at", "updated_at"
+        "daftar",
+        "posisi",
+        "deskripsi_posisi",
+        "diff_quota",
+        "jumlah_kuota",
+        "jumlah_terdaftar",
+        "program_studi",
+        "jenjang",
+        "perusahaan",
+        "government_agency",
+        "sub_government_agency",
+        "kabupaten",
+        "provinsi",
+        "created_at",
+        "updated_at",
     ]
     df_display = df[columns_to_show].copy()
 
@@ -118,8 +127,12 @@ if not df.empty:
         options=df_display.columns[1:],  # skip 'daftar' link
         key="sort_column",
     )
-    ascending = st.sidebar.radio("Urutan", ["Naik (ASC)", "Turun (DESC)"]) == "Naik (ASC)"
-    df_display = df_display.sort_values(by=sort_column, ascending=ascending).reset_index(drop=True)
+    ascending = (
+        st.sidebar.radio("Urutan", ["Naik (ASC)", "Turun (DESC)"]) == "Naik (ASC)"
+    )
+    df_display = df_display.sort_values(
+        by=sort_column, ascending=ascending
+    ).reset_index(drop=True)
 
     # ----------------------------------------------------------
     # ⚠️ Handle Empty Result
@@ -161,9 +174,7 @@ if not df.empty:
             df_page,
             column_config={
                 df_page.columns[0]: st.column_config.LinkColumn(
-                    df_page.columns[0],
-                    help="Buka di MagangHub",
-                    display_text="Daftar"
+                    df_page.columns[0], help="Buka di MagangHub", display_text="Daftar"
                 ),
             },
             hide_index=True,
