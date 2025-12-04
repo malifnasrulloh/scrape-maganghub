@@ -23,7 +23,7 @@ st.markdown(
 st.markdown(
     """
     ```
-    Data terakhir diperbarui pada: 2025-12-04 19:35 WIB
+    Data terakhir diperbarui pada: 2025-12-04 20:34 WIB
     ```
     """, width= 'content'
 )
