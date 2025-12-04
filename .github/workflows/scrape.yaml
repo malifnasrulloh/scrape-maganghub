@@ -2,8 +2,8 @@ name: Scrape MagangHub
 
 on:
   # schedule:
-  #   # Run every 12 hours
-  #   - cron: "0 */12 * * *"
+    # Run every 1 hours
+    - cron: "0 */1 * * *"
   workflow_dispatch:
 
 jobs:
@@ -50,6 +50,7 @@ jobs:
           # Only commit if there are changes
           if ! git diff --cached --quiet; then
             timestamp=$(date -u +"%Y-%m-%d %H:%M UTC")
+            sed -i "s|Data terakhir diperbarui pada:.*|Data terakhir diperbarui pada: $timestamp|g" app.py
             git commit -m "✨ Auto-update lowongan magang — $timestamp [skip ci]"
             git push
           else

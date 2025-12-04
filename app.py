@@ -20,6 +20,13 @@ st.markdown(
     [maganghub.kemnaker.go.id](https://maganghub.kemnaker.go.id)
     """
 )
+st.markdown(
+    """
+    ```
+    Data terakhir diperbarui pada: 
+    ```
+    """, width= 'content'
+)
 
 
 # --------------------------------------------------------------
